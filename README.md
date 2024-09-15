@@ -61,47 +61,47 @@ ___
 public class FooBarService {
     public static Foo[] getFoos(String[] names) {
         Req.Request request =
-            new Req.Request()
-            .setNamedCredential('MY_NAMED_CREDENTIAL')
-            .setBaseUrl('/api/v1')
-            .setHeader('Accept', 'application/json')
-            .setEndpoint('/foos')
-            .setJsonToApex(List<Foo>.class)
-            .setQueryParams(
-                    new Map<String, Object>{
-                            'filter' => names
-                    }
-            );
-    
+                new Req.Request()
+                        .setNamedCredential('MY_NAMED_CREDENTIAL')
+                        .setBaseUrl('/api/v1')
+                        .setHeader('Accept', 'application/json')
+                        .setEndpoint('/foos')
+                        .setIntoApex(List<Foo>.class)
+                        .setQueryParams(
+                                new Map<String, Object>{
+                                        'filter' => names
+                                }
+                        );
+
         Req.Response response = Req.get(request);
-        
-        if(response.getStatusCode != 200) {
+
+        if (response.getStatusCode != 200) {
             // do something
         }
 
         // Deserializes into List<Foo>.class specified by the Req.Request
-        return (Foo[])response.getBodyFromJson();
+        return (Foo[]) response.getBodyFromJson();
     }
-    
+
     public static CreateBarsResponse createBars(Map<String, Object> payload) {
         Req.Request request =
                 new Req.Request()
-                .setNamedCredential('MY_NAMED_CREDENTIAL')
-                .setBaseUrl('/api/v1')
-                .setHeader('Accept', 'application/json')
-                .setHeader('Content-Type', 'application/json')
-                .setEndpoint('/bars')
-                .setJsonToApexStrict(CreateBarsResponse.class)
-                .setBodyAsJson(payload);
-    
+                        .setNamedCredential('MY_NAMED_CREDENTIAL')
+                        .setBaseUrl('/api/v1')
+                        .setHeader('Accept', 'application/json')
+                        .setHeader('Content-Type', 'application/json')
+                        .setEndpoint('/bars')
+                        .setIntoApexStrict(CreateBarsResponse.class)
+                        .setBodyAsJson(payload);
+
         Req.Response response = Req.post(request);
 
-        if(response.getStatusCode != 201) {
+        if (response.getStatusCode != 201) {
             // do something
         }
-        
+
         // Deserializes into CreateBarsResponse.class specified by the Req.Request
-        return (CreateBarsResponse)response.getBodyFromJson();
+        return (CreateBarsResponse) response.getBodyFromJson();
     }
 }
 ```
