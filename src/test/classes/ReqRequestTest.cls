@@ -62,17 +62,6 @@ private class ReqRequestTest {
     }
 
     @IsTest
-    static void setGetBodySetsAndGetsHttpRequestBody() {
-        HttpRequest systemRequest = new HttpRequest();
-
-        Req.Request request =
-                new Req.Request(systemRequest)
-                        .setBody('TEST');
-
-        System.Assert.areEqual(request.getBody(), systemRequest.getBody());
-    }
-
-    @IsTest
     static void setGetBodyAsBlobSetsAndGetsHttpRequestBodyAsBlob() {
         HttpRequest systemRequest = new HttpRequest();
 

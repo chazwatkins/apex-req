@@ -56,6 +56,7 @@ public abstract class Req {
         private Map<String, Object> queryParams;
         private final HttpRequest systemRequest;
         private IntoApex intoApex;
+        private Object body;
 
         public Request() {
             this.systemRequest = new HttpRequest();
@@ -87,7 +88,7 @@ public abstract class Req {
             return this;
         }
 
-        private Request setIntoApex(Dataweave.Script dwScript) {
+        private Request setIntoApex(DataWeave.Script dwScript) {
             this.intoApex = new IntoApexFromDataweave(dwScript);
             return this;
         }
@@ -97,15 +98,17 @@ public abstract class Req {
         }
 
         public Request setQueryParams(IQueryParams queryParams) {
-            Object toUntype;
+            Object toDeserialize;
             if(queryParams instanceof IQueryParamsBuilder) {
-                toUntype = ((IQueryParamsBuilder)queryParams).build();
+                toDeserialize = ((IQueryParamsBuilder)queryParams).build();
             } else {
-                toUntype = queryParams;
+                toDeserialize = queryParams;
             }
 
             Map<String, Object> untypedQueryParams =
-                    (Map<String, Object>)JSON.deserializeUntyped(JSON.serialize(toUntype, true));
+                    (Map<String, Object>)JSON.deserializeUntyped(
+                            JSON.serialize(toDeserialize, true)
+                    );
 
             return this.setQueryParams(untypedQueryParams);
         }
@@ -119,17 +122,17 @@ public abstract class Req {
             return this.queryParams;
         }
 
-        public String getBody() {
-            return this.systemRequest.getBody();
+        public Object getBody() {
+            return this.body;
         }
 
         public Request setBody(String body) {
-            this.systemRequest.setBody(body);
+            this.body = body;
             return this;
         }
 
-        public Request setBodyAsJson(Object body) {
-            this.systemRequest.setBody(JSON.serialize(body));
+        public Request setBody(Object body) {
+            this.body = body;
             return this;
         }
 
@@ -204,11 +207,33 @@ public abstract class Req {
 
         @TestVisible
         private HttpRequest build() {
-            this.systemRequest.setEndpoint(this.buildRequestUrl());
+            this.setRequestUrl();
+            this.maybeTransformBody();
+
             return this.systemRequest;
         }
 
-        private String buildRequestUrl() {
+        private void maybeTransformBody() {
+            Object requestBody = this.getBody();
+
+            if(requestBody == null) {
+                return;
+            }
+
+            String systemRequestBody;
+            if(requestBody instanceof String) {
+                this.systemRequest.setBody((String)requestBody);
+                return;
+            }
+
+            switch on this.getHeader('Content-Type') {
+                when 'application/json' {
+                    this.systemRequest.setBody(JSON.serialize(requestBody));
+                }
+            }
+        }
+
+        private void setRequestUrl() {
             String callout;
             if(String.isBlank(this.namedCredential)) {
                 callout = '';
@@ -216,14 +241,16 @@ public abstract class Req {
                 callout = 'callout:' + this.namedCredential;
             }
 
-            return String.format(
-                    '{0}{1}{2}{3}',
-                    new String[]{
-                            callout,
-                            this.baseUrl,
-                            this.endpoint,
-                            this.getQueryParamsEncoded()
-                    });
+            this.systemRequest.setEndpoint(
+                    String.format(
+                        '{0}{1}{2}{3}',
+                        new String[]{
+                                callout,
+                                this.baseUrl,
+                                this.endpoint,
+                                this.getQueryParamsEncoded()
+                    })
+            );
         }
 
         private String getQueryParamsEncoded() {
@@ -258,19 +285,21 @@ public abstract class Req {
     public class Response implements IResponse {
         private HttpResponse systemResponse = new HttpResponse();
         private IntoApex intoApex;
+        private Object body;
 
         public Response() {
         }
 
         @TestVisible
         private Response(HttpResponse response) {
-            this.systemResponse = response;
+            this(null, response);
         }
 
         @TestVisible
         private Response(Request request, HttpResponse response) {
-            this.intoApex = request.getIntoApex();
+            this.intoApex = request?.getIntoApex();
             this.systemResponse = response;
+            this.body = this.maybeTransformBody(this.systemResponse.getBody());
         }
 
         public Response setIntoApex(System.Type apexType) {
@@ -283,7 +312,7 @@ public abstract class Req {
             return this;
         }
 
-        private Response setIntoApex(Dataweave.Script dwScript) {
+        private Response setIntoApex(DataWeave.Script dwScript) {
             this.intoApex = new IntoApexFromDataweave(dwScript);
             return this;
         }
@@ -310,35 +339,18 @@ public abstract class Req {
             return this;
         }
 
-        public String getBody() {
-            return this.systemResponse.getBody();
-        }
-
-        private Object getBodyFromJson() {
-            if (this.intoApex == null) {
-                return this.getBodyFromJsonUntyped();
-            }
-
-            IntoApexFromJson intoConfig = (IntoApexFromJson)this.intoApex;
-
-            if(intoConfig.isStrict) {
-                return JSON.deserializeStrict(this.systemResponse.getBody(), intoConfig.apexType);
-            }
-
-            return JSON.deserialize(this.systemResponse.getBody(), intoConfig.apexType);
-        }
-
-        private Object getBodyFromJsonUntyped() {
-            return JSON.deserializeUntyped(this.systemResponse.getBody());
+        public Object getBody() {
+            return this.body;
         }
 
         public Response setBody(String body) {
+            this.body = body;
             this.systemResponse.setBody(body);
             return this;
         }
 
-        private Response setBodyAsJson(Object body) {
-            this.systemResponse.setBody(JSON.serialize(body));
+        public Response setBody(Object body) {
+            this.body = body;
             return this;
         }
 
@@ -371,10 +383,24 @@ public abstract class Req {
         public XmlStreamReader getXmlStreamReader() {
             return this.systemResponse.getXmlStreamReader();
         }
+
+        private Object maybeTransformBody(String systemResponseBody) {
+            switch on this.getHeader('Content-Type') {
+                when 'application/json' {
+                    if(this.intoApex == null) {
+                        return JSON.deserializeUntyped((String)systemResponseBody);
+                    }
+
+                    return this.intoApex.transform(systemResponseBody);
+                }
+                when else {
+                    return systemResponseBody;
+                }
+            }
+        }
     }
 
     private interface ApexHttpRequest {
-        String getBody();
         Request setBody(String body);
         Blob getBodyAsBlob();
         Request setBodyAsBlob(Blob body);
@@ -398,7 +424,6 @@ public abstract class Req {
         Response setStatusCode(Integer statusCode);
         String getStatus();
         Response setStatus(String status);
-        String getBody() ;
         Response setBody(String body);
         Blob getBodyAsBlob();
         Response setBodyAsBlob(Blob body);
@@ -410,6 +435,7 @@ public abstract class Req {
     }
 
     private interface IRequest extends ApexHttpRequest {
+        Object getBody();
         Request setNamedCredential(String namedCredential);
         Request setIntoApex(System.Type apexType);
         Request setIntoApexStrict(System.Type apexType);
@@ -420,6 +446,7 @@ public abstract class Req {
     }
 
     private interface IResponse extends ApexHttpResponse {
+        Object getBody();
         Response setIntoApex(System.Type apexType);
         Response setIntoApexStrict(System.Type apexType);
         IntoApex getIntoApex();
@@ -431,13 +458,11 @@ public abstract class Req {
         Map<String, Object> build();
     }
 
-    private interface IntoApexTransform {
+    private interface IntoApex {
         Object transform(Object payload);
     }
 
-    private abstract class IntoApex implements IntoApexTransform { }
-
-    private class IntoApexFromJson extends IntoApex {
+    private class IntoApexFromJson implements IntoApex {
         public System.Type apexType;
         public Boolean isStrict = false;
 
@@ -451,14 +476,18 @@ public abstract class Req {
         }
 
         public Object transform(Object payload) {
-            return payload;
+            if(this.isStrict) {
+                return JSON.deserializeStrict((String)payload, this.apexType);
+            }
+
+            return JSON.deserialize((String)payload, this.apexType);
         }
     }
 
-    private class IntoApexFromDataweave extends IntoApex {
+    private class IntoApexFromDataweave implements IntoApex {
         public DataWeave.Script script;
 
-        public IntoApexFromDataweave(Dataweave.Script script) {
+        public IntoApexFromDataweave(DataWeave.Script script) {
             this.script = script;
         }
 
