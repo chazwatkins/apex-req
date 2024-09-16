@@ -17,35 +17,35 @@ public class Req {
     }
 
     public static Response del(Request request) {
-        return instance.del(request);
+        return getInstance().del(request);
     }
 
     public static Response get(Request request) {
-        return instance.get(request);
+        return getInstance().get(request);
     }
 
     public static Response head(Request request) {
-        return instance.head(request);
+        return getInstance().head(request);
     }
 
     public static Response options(Request request) {
-        return instance.options(request);
+        return getInstance().options(request);
     }
 
     public static Response patch(Request request) {
-        return instance.patch(request);
+        return getInstance().patch(request);
     }
 
     public static Response post(Request request) {
-        return instance.post(request);
+        return getInstance().post(request);
     }
 
     public static Response put(Request request) {
-        return instance.put(request);
+        return getInstance().put(request);
     }
 
     public static Response trace(Request request) {
-        return instance.trace(request);
+        return getInstance().trace(request);
     }
 
     private class ReqImpl implements IReq {
@@ -291,10 +291,11 @@ public class Req {
                 return;
             }
 
-            switch on this.getHeader('Content-Type') {
-                when 'application/json' {
-                    this.systemRequest.setBody(JSON.serialize(requestBody));
-                }
+            String contentType = this.getHeader('Content-Type');
+
+            if(contentType.contains('application/json')) {
+                this.systemRequest.setBody(JSON.serialize(requestBody));
+                return;
             }
         }
 
@@ -446,18 +447,16 @@ public class Req {
         }
 
         private Object maybeTransformBody(String systemResponseBody) {
-            switch on this.getHeader('Content-Type') {
-                when 'application/json' {
-                    if(this.intoApex == null) {
-                        return JSON.deserializeUntyped((String)systemResponseBody);
-                    }
+            String contentType = this.getHeader('Content-Type');
+            if(contentType.contains('application/json')) {
+                if(this.intoApex == null) {
+                    return JSON.deserializeUntyped((String)systemResponseBody);
+                }
 
-                    return this.intoApex.transform(systemResponseBody);
-                }
-                when else {
-                    return systemResponseBody;
-                }
+                return this.intoApex.transform(systemResponseBody);
             }
+
+            return systemResponseBody;
         }
     }
 
