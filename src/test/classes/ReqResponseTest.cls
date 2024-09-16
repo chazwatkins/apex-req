@@ -1,5 +1,12 @@
-@IsTest
+@IsTest(IsParallel=true)
 private class ReqResponseTest {
+
+    @IsTest
+    static void newReqResponseHasDefaultsSet() {
+        Req.Response response = new Req.Response();
+        System.Assert.isNotNull(response.systemResponse);
+    }
+
     @IsTest
     static void setGetStatusHttpResponseStatus() {
         HttpResponse systemResponse = new HttpResponse();
@@ -91,5 +98,158 @@ private class ReqResponseTest {
                 response.getXmlStreamReader().getNamespace(),
                 systemResponse.getXmlStreamReader().getNamespace()
         );
+    }
+
+    @IsTest
+    static void withoutIntoApexJsonResponseIsDeserialized() {
+
+        User[] testData = new User[]{
+                new User(FirstName='Test')
+        };
+
+        String systemResponsePayload = JSON.serialize(testData);
+        HttpResponse systemResponse = new HttpResponse();
+        systemResponse.setHeader('Content-Type', 'application/json');
+        systemResponse.setBody(systemResponsePayload);
+        systemResponse.setStatusCode(200);
+
+        Req.Request request =
+                new Req.Request()
+                .setHeader('Content-Type', 'application/json')
+                .setBody(testData);
+
+
+        Req.Response response =
+                new Req.Response(request, systemResponse);
+
+        System.Assert.areEqual(
+                JSON.deserializeUntyped(systemResponsePayload),
+                response.getBody()
+        );
+
+    }
+
+    @IsTest
+    static void withIntoApexJsonResponseIsDeserialized() {
+
+        User[] testData = new User[]{
+                new User(FirstName='Test')
+        };
+
+        String systemResponsePayload = JSON.serialize(testData);
+        HttpResponse systemResponse = new HttpResponse();
+        systemResponse.setHeader('Content-Type', 'application/json');
+        systemResponse.setBody(systemResponsePayload);
+        systemResponse.setStatusCode(200);
+
+        Req.Request request =
+                new Req.Request()
+                        .setHeader('Content-Type', 'application/json')
+                        .setIntoApex(List<User>.class)
+                        .setBody(testData);
+
+
+        Req.Response response =
+                new Req.Response(request, systemResponse);
+
+        System.Assert.areEqual(
+                JSON.deserialize(systemResponsePayload, List<User>.class),
+                response.getBody()
+        );
+
+    }
+
+    @IsTest
+    static void withIntoApexStrictJsonResponseIsDeserialized() {
+
+        User[] testData = new User[]{
+                new User(FirstName='Test')
+        };
+
+        String systemResponsePayload = JSON.serialize(testData);
+        HttpResponse systemResponse = new HttpResponse();
+        systemResponse.setHeader('Content-Type', 'application/json');
+        systemResponse.setBody(systemResponsePayload);
+        systemResponse.setStatusCode(200);
+
+        Req.Request request =
+                new Req.Request()
+                        .setHeader('Content-Type', 'application/json')
+                        .setIntoApex(List<User>.class)
+                        .setBody(testData);
+
+
+        Req.Response response =
+                new Req.Response(request, systemResponse);
+
+        System.Assert.areEqual(
+                JSON.deserializeStrict(systemResponsePayload, List<User>.class),
+                response.getBody()
+        );
+
+    }
+
+    @IsTest
+    static void withIntoApexWithoutContentTypeBodyIsNotDeserialized() {
+
+        User[] testData = new User[]{
+                new User(FirstName='Test')
+        };
+
+        String systemResponsePayload = JSON.serialize(testData);
+        HttpResponse systemResponse = new HttpResponse();
+        systemResponse.setBody(systemResponsePayload);
+        systemResponse.setStatusCode(200);
+
+        Req.Request request =
+                new Req.Request()
+                        .setIntoApex(List<User>.class)
+                        .setBody(testData);
+
+
+        Req.Response response =
+                new Req.Response(request, systemResponse);
+
+        System.Assert.areEqual(
+                systemResponsePayload,
+                response.getBody()
+        );
+
+    }
+
+    @IsTest
+    static void setIntoApexCreatesToApexJsonTransformer() {
+        Req.Response response =
+                new Req.Response()
+                        .setIntoApex(User.class);
+
+        System.Assert.isInstanceOfType(
+                response.getIntoApex(),
+                Req.IntoApexFromJson.class
+        );
+
+        Req.IntoApexFromJson transformer =
+                (Req.IntoApexFromJson)Response.getIntoApex();
+
+        System.Assert.areEqual(User.class, transformer.apexType);
+        System.Assert.isFalse(transformer.isStrict);
+    }
+
+    @IsTest
+    static void setIntoApexStrictCreatesToApexStrictJsonTransformer() {
+        Req.Response response =
+                new Req.Response()
+                        .setIntoApexStrict(User.class);
+
+        System.Assert.isInstanceOfType(
+                response.getIntoApex(),
+                Req.IntoApexFromJson.class
+        );
+
+        Req.IntoApexFromJson transformer =
+                (Req.IntoApexFromJson)response.getIntoApex();
+
+        System.Assert.areEqual(User.class, transformer.apexType);
+        System.Assert.isTrue(transformer.isStrict);
     }
 }

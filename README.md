@@ -170,7 +170,7 @@ You can provide query params in three ways.
    param keys and value types.
 
     ```apex
-    public class QueryParams implements Req.IQueryParams {
+    public class QueryParams implements Req.QueryParams {
         public Map<String, Integer> pagination;
     }
     
@@ -181,11 +181,11 @@ You can provide query params in three ways.
     ```
 
 3. Create a class using the `Req.IQueryParamsBuilder` interface that requires a `Map<String, Object> build()`
-   method.  Use this in scenarios where a query param has a name reserved in Apex and you need to rename
+   method. Use this in scenarios where a query param has a name reserved in Apex and you need to rename
    the property before it's sent. For example: sort, insert, delete
 
     ```apex
-    public class QueryParams implements Req.IQueryParamsBuilder {
+    public class QueryParams implements Req.QueryParamsBuilder {
         // sort and delete are reserved Apex tokens
         public Map<String, String> sortOrder;
         public Boolean del;

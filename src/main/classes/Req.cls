@@ -1,50 +1,113 @@
-public abstract class Req {
+public class Req {
+
+    private static final IReq instance = (IReq)new ReqImpl();
+    private static IReq mockInstance;
+
+    private static IReq getInstance() {
+        if(mockInstance != null) {
+            return mockInstance;
+        }
+
+        return instance;
+    }
+
+    @TestVisible
+    private static void setMock(IReq mock) {
+        mockInstance = mock;
+    }
 
     public static Response del(Request request) {
-        request.setMethod('DELETE');
-        return Req.run(request);
+        return instance.del(request);
     }
 
     public static Response get(Request request) {
-        request.setMethod('GET');
-        return Req.run(request);
+        return instance.get(request);
     }
 
     public static Response head(Request request) {
-        request.setMethod('HEAD');
-        return Req.run(request);
+        return instance.head(request);
     }
 
     public static Response options(Request request) {
-        request.setMethod('OPTIONS');
-        return Req.run(request);
+        return instance.options(request);
     }
 
     public static Response patch(Request request) {
-        request.setMethod('PATCH');
-        return Req.run(request);
+        return instance.patch(request);
     }
 
     public static Response post(Request request) {
-        request.setMethod('POST');
-        return Req.run(request);
+        return instance.post(request);
     }
 
     public static Response put(Request request) {
-        request.setMethod('PUT');
-        return Req.run(request);
+        return instance.put(request);
     }
 
     public static Response trace(Request request) {
-        request.setMethod('TRACE');
-        return Req.run(request);
+        return instance.trace(request);
     }
 
-    public static Response run(Request request) {
-        return new Response(
-                request,
-                new Http().send(request.build())
-        );
+    private class ReqImpl implements IReq {
+        public Response del(Request request) {
+            request.setMethod('DELETE');
+            return this.run(request);
+        }
+
+        public Response get(Request request) {
+            request.setMethod('GET');
+            return this.run(request);
+        }
+
+        public Response head(Request request) {
+            request.setMethod('HEAD');
+            return this.run(request);
+        }
+
+        public Response options(Request request) {
+            request.setMethod('OPTIONS');
+            return this.run(request);
+        }
+
+        public Response patch(Request request) {
+            request.setMethod('PATCH');
+            return this.run(request);
+        }
+
+        public Response post(Request request) {
+            request.setMethod('POST');
+            return this.run(request);
+        }
+
+        public Response put(Request request) {
+            request.setMethod('PUT');
+            return this.run(request);
+        }
+
+        public Response trace(Request request) {
+            request.setMethod('TRACE');
+            return this.run(request);
+        }
+
+        public Response run(Request request) {
+            return new Response(
+                    request,
+                    new Http().send(request.build())
+            );
+        }
+    }
+
+    @TestVisible
+    private interface IReq {
+        Response del(Request request);
+        Response get(Request request);
+        Response head(Request request);
+        Response options(Request request);
+        Response patch(Request request);
+        Response post(Request request);
+        Response put(Request request);
+        Response trace(Request request);
+        Response run(Request request);
     }
 
     private static final Integer DEFAULT_TIMEOUT = 30000;
@@ -73,9 +136,17 @@ public abstract class Req {
             return this;
         }
 
+        public String getBaseUrl() {
+            return this.baseUrl;
+        }
+
         public Request setNamedCredential(String namedCredential) {
             this.namedCredential = namedCredential;
             return this;
+        }
+
+        public String getNamedCredential() {
+            return this.namedCredential;
         }
 
         public Request setIntoApex(System.Type apexType) {
@@ -88,19 +159,14 @@ public abstract class Req {
             return this;
         }
 
-        private Request setIntoApex(DataWeave.Script dwScript) {
-            this.intoApex = new IntoApexFromDataweave(dwScript);
-            return this;
-        }
-
         public IntoApex getIntoApex() {
             return this.intoApex;
         }
 
-        public Request setQueryParams(IQueryParams queryParams) {
+        public Request setQueryParams(QueryParams queryParams) {
             Object toDeserialize;
-            if(queryParams instanceof IQueryParamsBuilder) {
-                toDeserialize = ((IQueryParamsBuilder)queryParams).build();
+            if(queryParams instanceof QueryParamsBuilder) {
+                toDeserialize = ((QueryParamsBuilder)queryParams).build();
             } else {
                 toDeserialize = queryParams;
             }
@@ -220,7 +286,6 @@ public abstract class Req {
                 return;
             }
 
-            String systemRequestBody;
             if(requestBody instanceof String) {
                 this.systemRequest.setBody((String)requestBody);
                 return;
@@ -235,10 +300,10 @@ public abstract class Req {
 
         private void setRequestUrl() {
             String callout;
-            if(String.isBlank(this.namedCredential)) {
+            if(String.isBlank(this.getNamedCredential())) {
                 callout = '';
             } else {
-                callout = 'callout:' + this.namedCredential;
+                callout = 'callout:' + this.getNamedCredential();
             }
 
             this.systemRequest.setEndpoint(
@@ -246,8 +311,8 @@ public abstract class Req {
                         '{0}{1}{2}{3}',
                         new String[]{
                                 callout,
-                                this.baseUrl,
-                                this.endpoint,
+                                this.getBaseUrl(),
+                                this.getEndpoint(),
                                 this.getQueryParamsEncoded()
                     })
             );
@@ -283,6 +348,7 @@ public abstract class Req {
     }
 
     public class Response implements IResponse {
+        @TestVisible
         private HttpResponse systemResponse = new HttpResponse();
         private IntoApex intoApex;
         private Object body;
@@ -309,11 +375,6 @@ public abstract class Req {
 
         public Response setIntoApexStrict(System.Type apexType) {
             this.intoApex = new IntoApexFromJson(apexType, true);
-            return this;
-        }
-
-        private Response setIntoApex(DataWeave.Script dwScript) {
-            this.intoApex = new IntoApexFromDataweave(dwScript);
             return this;
         }
 
@@ -440,7 +501,7 @@ public abstract class Req {
         Request setIntoApex(System.Type apexType);
         Request setIntoApexStrict(System.Type apexType);
         IntoApex getIntoApex();
-        Request setQueryParams(IQueryParams queryParams);
+        Request setQueryParams(QueryParams queryParams);
         Request setQueryParams(Map<String, Object> queryParams);
         Map<String, Object> getQueryParams();
     }
@@ -452,16 +513,18 @@ public abstract class Req {
         IntoApex getIntoApex();
     }
 
-    public interface IQueryParams {}
+    public interface QueryParams {}
 
-    public interface IQueryParamsBuilder extends IQueryParams {
+    public interface QueryParamsBuilder extends QueryParams {
         Map<String, Object> build();
     }
 
+    @TestVisible
     private interface IntoApex {
         Object transform(Object payload);
     }
 
+    @TestVisible
     private class IntoApexFromJson implements IntoApex {
         public System.Type apexType;
         public Boolean isStrict = false;
@@ -481,19 +544,6 @@ public abstract class Req {
             }
 
             return JSON.deserialize((String)payload, this.apexType);
-        }
-    }
-
-    private class IntoApexFromDataweave implements IntoApex {
-        public DataWeave.Script script;
-
-        public IntoApexFromDataweave(DataWeave.Script script) {
-            this.script = script;
-        }
-
-        public Object transform(Object payload) {
-            DataWeave.Result result = this.script.execute((Map<String, Object>)payload);
-            return result.getValue();
         }
     }
 }

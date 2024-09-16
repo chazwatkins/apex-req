@@ -128,4 +128,134 @@ private class ReqRequestTest {
                 systemRequest.getCompressed()
         );
     }
+
+    @IsTest
+    static void setIntoApexCreatesToApexJsonTransformer() {
+        Req.Request request =
+                new Req.Request()
+                    .setIntoApex(User.class);
+
+        System.Assert.isInstanceOfType(
+                request.getIntoApex(),
+                Req.IntoApexFromJson.class
+        );
+
+        Req.IntoApexFromJson transformer =
+                (Req.IntoApexFromJson)request.getIntoApex();
+
+        System.Assert.areEqual(User.class, transformer.apexType);
+        System.Assert.isFalse(transformer.isStrict);
+    }
+
+    @IsTest
+    static void setIntoApexStrictCreatesToApexStrictJsonTransformer() {
+        Req.Request request =
+                new Req.Request()
+                        .setIntoApexStrict(User.class);
+
+        System.Assert.isInstanceOfType(
+                request.getIntoApex(),
+                Req.IntoApexFromJson.class
+        );
+
+        Req.IntoApexFromJson transformer =
+                (Req.IntoApexFromJson)request.getIntoApex();
+
+        System.Assert.areEqual(User.class, transformer.apexType);
+        System.Assert.isTrue(transformer.isStrict);
+    }
+
+    @IsTest
+    static void buildSerializesBodyWhenContentTypeIsJson() {
+        User testData = new User(FirstName='Test');
+
+        Req.Request request =
+                new Req.Request()
+                    .setHeader('Content-Type', 'application/json')
+                    .setBody(testData);
+
+        HttpRequest systemRequest = request.build();
+
+        System.Assert.areEqual(
+                JSON.serialize(testData),
+                systemRequest.getBody()
+        );
+    }
+
+    @IsTest
+    static void setBodyWithStringDoesNotSerialize() {
+        String testData = 'Test';
+
+        Req.Request request =
+                new Req.Request()
+                        .setHeader('Content-Type', 'application/json')
+                        .setBody(testData);
+
+        HttpRequest systemRequest = request.build();
+
+        System.Assert.areEqual(
+                testData,
+                systemRequest.getBody()
+        );
+    }
+
+    private final static Map<String, Object> MOCK_QUERY_PARAMS =
+            new Map<String, Object>{'name' => 'test'};
+
+    @IsTest
+    static void setQueryParamsWithQueryParamsInterface() {
+        QueryParams qp = new QueryParams();
+
+        Req.Request request = new Req.Request().setQueryParams(qp);
+
+        System.Assert.areEqual(MOCK_QUERY_PARAMS, request.getQueryParams());
+    }
+
+    @IsTest
+    static void setQueryParamsWithQueryParamsBuilderInterface() {
+        QueryParamsBuilder qp = new QueryParamsBuilder();
+
+        Req.Request request = new Req.Request().setQueryParams(qp);
+
+        System.Assert.areEqual(MOCK_QUERY_PARAMS, request.getQueryParams());
+    }
+
+    @IsTest
+    static void setQueryParamsWithMap() {
+        Req.Request request = new Req.Request().setQueryParams(MOCK_QUERY_PARAMS);
+
+        System.Assert.areEqual(MOCK_QUERY_PARAMS, request.getQueryParams());
+    }
+
+    @IsTest
+    static void buildWithQueryParamsWithoutNullValuesAppendsToRequestUrl() {
+        final Map<String, Object> queryParams =
+            new Map<String, Object>{
+                    'name' => new String[]{'awesome'},
+                    'test' => 'yay',
+                    'fake' => null
+            };
+
+        Req.Request request =
+                new Req.Request()
+                        .setNamedCredential('TEST')
+                        .setBaseUrl('/api/v1')
+                        .setEndpoint('/foo')
+                        .setQueryParams(queryParams);
+
+        HttpRequest systemRequest = request.build();
+        System.Assert.isTrue(systemRequest.getEndpoint().contains('?'));
+        System.Assert.isTrue(systemRequest.getEndpoint().contains('name='));
+        System.Assert.isFalse(systemRequest.getEndpoint().contains('fake='));
+    }
+
+    private class QueryParams implements Req.QueryParams {
+        public String name = 'test';
+    }
+
+    private class QueryParamsBuilder implements Req.QueryParamsBuilder {
+        public Map<String, Object> build() {
+            return MOCK_QUERY_PARAMS;
+        }
+    }
 }
