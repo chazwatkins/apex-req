@@ -452,7 +452,7 @@ public class Req {
         systemResponseBody = systemResponseBody.toString();
       }
 
-      if (contentType.contains('application/json')) {
+      if (contentType != null && contentType.contains('application/json')) {
         return this.maybeTransformBodyJson((String) systemResponseBody);
       }
 

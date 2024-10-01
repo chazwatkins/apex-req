@@ -236,10 +236,9 @@ private class ReqResponseTest {
             new Req.Response()
                     .setIntoApexStrict(User.class);
 
-    Req.IntoApexJson transformer =
-            (Req.IntoApexJson) response.getIntoApex();
+    Req.IntoApex transformer = response.getIntoApex();
 
     System.Assert.isInstanceOfType(transformer, Req.IntoApexJsonStrict.class);
-    System.Assert.areEqual(User.class, transformer.apexType);
+    System.Assert.areEqual(User.class, ((Req.IntoApexJsonStrict) transformer).apexType);
   }
 }
