@@ -282,7 +282,8 @@ public class Req {
 
         String stringValue;
         if (value instanceof Map<String, Object> || value instanceof Object[]) {
-          stringValue = JSON.serialize(value, true);
+	        stringValue = JSON.serialize(value, true);
+	        stringValue = EncodingUtil.urlEncode(stringValue, 'UTF-8');
         } else {
           stringValue = String.valueOf(value);
         }
