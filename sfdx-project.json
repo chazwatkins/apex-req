@@ -1,8 +1,8 @@
 {
   "packageDirectories": [
     {
-      "versionName": "v0.0.0",
-      "versionNumber": "0.0.0.NEXT",
+      "versionName": "v0.1.0",
+      "versionNumber": "0.1.0.NEXT",
       "path": "src",
       "default": true,
       "package": "Req",
@@ -12,9 +12,10 @@
   "name": "Req",
   "namespace": "",
   "sfdcLoginUrl": "https://login.salesforce.com",
-  "sourceApiVersion": "61.0",
+  "sourceApiVersion": "62.0",
   "packageAliases": {
     "Req": "0Ho8c00000000pFCAQ",
-    "Req@0.0.0": "04t8c0000013chDAAQ"
+    "Req@0.0.0": "04t8c0000013chDAAQ",
+    "Req@0.1.0": "04t8c0000013ci6AAA"
   }
 }
